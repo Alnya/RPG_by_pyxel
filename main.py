@@ -27,7 +27,7 @@ class App:
             Player(name="Riica", hp=130, mp=150, at=100, df=90, sp=220, place=self.text_width + WIDTH // 2),
             Player(name="Anabel", hp=200, mp=120, at=130, df=130, sp=190, place=self.text_width + (WIDTH * 3) // 4),
         ]
-        self.enemy = Enemy(name="Guildna", hp=1000, mp=1000, at=100, df=50, sp=2000)
+        self.enemy = Enemy(name="Guildna", hp=100, mp=1000, at=100, df=50, sp=2000)
 
         self.player_list[0].set_skill(skill_name="X BLADE", skill_type="attack", rate=2, skill_mp=40)
         self.player_list[1].set_skill(skill_name="NIRVANA SLASH", skill_type="attack", rate=1.7, skill_mp=25)
@@ -70,10 +70,13 @@ class App:
             self.fc = pyxel.frame_count
 
         for player in self.player_list:
+            if not player.is_alive:
+                player.hp = 0
+                continue
             if player.hp < 0:
                 player.hp = 0
                 player.is_alive = False
-                self.dead_count += 1
+                player.dead_fc = pyxel.frame_count + 25
             elif player.hp > player.max_hp:
                 player.hp = player.max_hp
         if self.enemy.hp < 0:
@@ -84,6 +87,11 @@ class App:
         for i in range(len(self.player_list)):
             if not self.player_list[i].is_alive:
                 self.select_list[i] = False
+        count = 0
+        for player in self.player_list:
+            if not player.is_alive:
+                count += 1
+        self.dead_count = count
         if self.dead_count == 4 and self.mode != LOSE:
             self.mode = LOSE
             self.fc = pyxel.frame_count
@@ -159,6 +167,12 @@ class App:
                        col=8)
             if 0 <= pyxel.frame_count - self.fc < 50:
                 pyxel.text(x=WIDTH // 8, y=HEIGHT // 16, s=self.last_attack_log, col=7)
+                pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8,
+                           s=f"HP {self.enemy.hp}/{self.enemy.max_hp}",
+                           col=0)
+                pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8,
+                           s=f"HP {random.randint(1, self.enemy.max_hp)}/{self.enemy.max_hp}",
+                           col=14)
             elif 50 <= pyxel.frame_count - self.fc < 130:
                 pyxel.text(x=WIDTH // 8, y=HEIGHT // 16, s=f"VICTORY!!!!!!!\nYOUWIN!!!!!!!!!!!!", col=10)
             else:
@@ -181,7 +195,11 @@ class App:
 
     def dead_draw(self):
         for player in self.player_list:
-            if not player.is_alive:
+            if player.dead_fc > pyxel.frame_count:
+                pyxel.text(x=player.place, y=self.text_height + 8, s=f"HP {player.hp}/{player.max_hp}", col=0)
+                pyxel.text(x=player.place, y=self.text_height + 8,
+                           s=f"HP {random.randint(1, player.max_hp)}/{player.max_hp}", col=14)
+            elif not player.is_alive:
                 pyxel.text(x=player.place, y=self.text_height, s=player.name, col=13)
                 pyxel.text(x=player.place, y=self.text_height + 8, s=f"HP {player.hp}/{player.max_hp}", col=13)
                 pyxel.text(x=player.place, y=self.text_height + 16, s=f"MP {player.mp}/{player.max_mp}", col=13)
@@ -259,7 +277,7 @@ class App:
                                col=7)
                     for p in self.player_list:
                         pyxel.text(x=p.place, y=self.text_height + 8, s=f"HP {p.hp}/{p.max_hp}", col=3)
-                        if (pyxel.frame_count - self.fc) % 50 < 25:
+                        if (pyxel.frame_count - self.fc) % 50 < 25 and p.is_alive:
                             pyxel.text(x=p.place, y=self.text_height + 8, s=f"HP {p.hp}/{p.max_hp}", col=0)
                             pyxel.text(x=p.place, y=self.text_height + 8,
                                        s=f"HP {random.randint(1, p.max_hp)}/{p.max_hp}", col=3)
@@ -281,7 +299,7 @@ class App:
         self.last_attack_log = f"{self.enemy.name}'s ATTACK!!\nEveryone accepted damages from {self.enemy.name}!"
         for player in self.player_list:
             pyxel.text(x=player.place, y=self.text_height + 8, s=f"HP {player.hp}/{player.max_hp}", col=14)
-            if (pyxel.frame_count - self.fc) % 50 < 25:
+            if (pyxel.frame_count - self.fc) % 50 < 25 and player.is_alive:
                 pyxel.text(x=player.place, y=self.text_height + 8, s=f"HP {player.hp}/{player.max_hp}", col=0)
                 pyxel.text(x=player.place, y=self.text_height + 8,
                            s=f"HP {random.randint(1, player.max_hp)}/{player.max_hp}", col=14)
@@ -307,6 +325,7 @@ class Player:
         self.rate = 1
         self.skill_name = ""
         self.skill_mp = 0
+        self.dead_fc = -1
 
         self.is_alive = True
 
