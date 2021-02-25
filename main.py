@@ -27,7 +27,7 @@ class App:
             Player(name="Riica", hp=130, mp=150, at=100, df=90, sp=220, place=self.text_width + WIDTH // 2),
             Player(name="Anabel", hp=200, mp=120, at=130, df=130, sp=190, place=self.text_width + (WIDTH * 3) // 4),
         ]
-        self.enemy = Enemy(name="Guildna", hp=100, mp=1000, at=100, df=50, sp=2000)
+        self.enemy = Enemy(name="Guildna", hp=1000, mp=1000, at=100, df=50, sp=2000)
 
         self.player_list[0].set_skill(skill_name="X BLADE", skill_type="attack", rate=2, skill_mp=40)
         self.player_list[1].set_skill(skill_name="NIRVANA SLASH", skill_type="attack", rate=1.7, skill_mp=25)
@@ -191,7 +191,7 @@ class App:
 
     def title_draw(self):
         pyxel.cls(0)
-        pyxel.text(x=WIDTH // 2 - 24, y=HEIGHT // 2 - 4, s=f"GAME START", col=7)
+        pyxel.text(x=WIDTH // 2 - 24, y=HEIGHT // 2 - 4, s=f"GAME START", col=7 if pyxel.frame_count % 40 < 20 else 8)
 
     def dead_draw(self):
         for player in self.player_list:
@@ -221,6 +221,11 @@ class App:
             self.action_turn_list.append(i[0])
 
     def attack(self, player):
+        # pyxel.blt(x=self.enemy_width - 8, y=self.enemy_height - 8, img=2, u=0, v=0, w=31, h=31, colkey=0)
+        effect_fc = ((pyxel.frame_count - self.fc) % SPEED - 10) * 31 // 10
+        pyxel.blt(x=self.enemy_width - 8, y=self.enemy_height - 8 + effect_fc, img=2, u=0, v=effect_fc, w=31,
+                  h=31,
+                  colkey=0)
         if player.is_attack:
             if not player.damaged:
                 player.damage = int(player.at * random.uniform(0.9, 1.1)) - int(
@@ -273,6 +278,7 @@ class App:
                     self.last_attack_log = f"{player.name}'s SKILL! {player.skill_name}!!\n{player.damage} " \
                                            f"damages to {self.enemy.name}!"
                 elif player.skill_type == "heal":
+                    self.heal_effect()
                     pyxel.text(x=WIDTH // 8, y=HEIGHT // 16 + 8, s=f"Everyone gets {player.damage} points of heal!!",
                                col=7)
                     for p in self.player_list:
@@ -286,6 +292,22 @@ class App:
                     pyxel.text(x=player.place, y=self.text_height + 16, s=f"MP {player.mp}/{player.max_mp}", col=0)
                     pyxel.text(x=player.place, y=self.text_height + 16,
                                s=f"MP {random.randint(1, player.max_mp)}/{player.max_mp}", col=12)
+
+    def heal_effect(self):
+        if (pyxel.frame_count - self.fc) % SPEED < 50:
+            start = (((pyxel.frame_count - self.fc) % SPEED) * (WIDTH - 7) // 20) - 140
+            end = (((pyxel.frame_count - self.fc) % SPEED) * (WIDTH - 7) // 20) + 70
+            for _ in range(20):
+                pyxel.blt(
+                    x=random.randint(start, end),
+                    y=random.randint(self.text_height, HEIGHT - 7),
+                    img=2,
+                    u=32,
+                    v=0,
+                    w=7,
+                    h=7,
+                    colkey=0
+                )
 
     def enemy_attack(self):
         if not self.enemy.damaged:
