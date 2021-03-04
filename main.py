@@ -1,5 +1,6 @@
 import pyxel
 import random
+import math
 
 WIDTH = 200
 HEIGHT = 100
@@ -73,13 +74,13 @@ class App:
             if not player.is_alive:
                 player.hp = 0
                 continue
-            if player.hp < 0:
+            if player.hp <= 0 and player.is_alive:
                 player.hp = 0
                 player.is_alive = False
                 player.dead_fc = pyxel.frame_count + 25
             elif player.hp > player.max_hp:
                 player.hp = player.max_hp
-        if self.enemy.hp < 0:
+        if self.enemy.hp <= 0 and self.enemy.is_alive:
             self.enemy.hp = 0
             self.enemy.is_alive = False
             self.mode = WIN
@@ -122,7 +123,7 @@ class App:
 
         pyxel.text(x=self.enemy_width + 32, y=self.enemy_height, s=self.enemy.name, col=7)
         pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8, s=f"HP {self.enemy.hp}/{self.enemy.max_hp}", col=7)
-        pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 16, s=f"HP {self.enemy.mp}/{self.enemy.max_mp}",
+        pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 16, s=f"MP {self.enemy.mp}/{self.enemy.max_mp}",
                    col=7)
 
         pyxel.blt(x=self.enemy_width, y=self.enemy_height, img=1, u=0, v=(pyxel.frame_count % 11) * 16, w=16, h=16,
@@ -133,8 +134,10 @@ class App:
                 self.draw_select(i)
                 if self.player_list[i].is_attack:
                     pyxel.text(x=self.player_list[i].place, y=self.text_height + 24, s=f">ATTACK", col=8)
+                    pyxel.text(x=self.player_list[i].place, y=self.text_height + 32, s=f">SKILL", col=0)
                 else:
-                    pyxel.text(x=self.player_list[i].place, y=self.text_height + 32, s=f">SKILL", col=8)
+                    pyxel.text(x=self.player_list[i].place, y=self.text_height + 32, s=f">SKILL", col=10)
+                    pyxel.text(x=self.player_list[i].place, y=self.text_height + 24, s=f">ATTACK", col=0)
         if self.mode == SELECTING:
             for i in range(len(self.select_list)):
                 if self.select_list[i]:
@@ -173,8 +176,11 @@ class App:
                 pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8,
                            s=f"HP {random.randint(1, self.enemy.max_hp)}/{self.enemy.max_hp}",
                            col=14)
+                self.attack_effect()
             elif 50 <= pyxel.frame_count - self.fc < 130:
                 pyxel.text(x=WIDTH // 8, y=HEIGHT // 16, s=f"VICTORY!!!!!!!\nYOUWIN!!!!!!!!!!!!", col=10)
+                if pyxel.frame_count - self.fc < 80:
+                    self.effect_when_enemy_is_attacked()
             else:
                 pyxel.cls(7)
                 pyxel.text(x=WIDTH // 2 - 24, y=HEIGHT // 2 - 4, s=f"GAME CLEAR", col=10)
@@ -192,6 +198,8 @@ class App:
     def title_draw(self):
         pyxel.cls(0)
         pyxel.text(x=WIDTH // 2 - 24, y=HEIGHT // 2 - 4, s=f"GAME START", col=7 if pyxel.frame_count % 40 < 20 else 8)
+        pyxel.text(x=WIDTH // 2 - 27, y=HEIGHT * 3 // 4 - 8, s=f"PRESS  ENTER",
+                   col=9 if pyxel.frame_count % 6 < 3 else 10)
 
     def dead_draw(self):
         for player in self.player_list:
@@ -222,10 +230,11 @@ class App:
 
     def attack(self, player):
         # pyxel.blt(x=self.enemy_width - 8, y=self.enemy_height - 8, img=2, u=0, v=0, w=31, h=31, colkey=0)
-        effect_fc = ((pyxel.frame_count - self.fc) % SPEED - 10) * 31 // 10
-        pyxel.blt(x=self.enemy_width - 8, y=self.enemy_height - 8 + effect_fc, img=2, u=0, v=effect_fc, w=31,
-                  h=31,
-                  colkey=0)
+        # effect_fc = ((pyxel.frame_count - self.fc) % SPEED - 10) * 31 // 10
+        # pyxel.blt(x=self.enemy_width - 8, y=self.enemy_height - 8 + effect_fc, img=2, u=0, v=effect_fc, w=31,
+        #           h=31,
+        #           colkey=0)
+        # self.attack_effect()
         if player.is_attack:
             if not player.damaged:
                 player.damage = int(player.at * random.uniform(0.9, 1.1)) - int(
@@ -234,15 +243,28 @@ class App:
                 player.damaged = True
             if (pyxel.frame_count - self.fc) % 50 < 25:
                 show_hp = random.randint(1, self.enemy.max_hp)
+                pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8,
+                           s=f"HP {self.enemy.hp}/{self.enemy.max_hp}",
+                           col=0)
+                pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8, s=f"HP {show_hp}/{self.enemy.max_hp}",
+                           col=14)
             else:
                 show_hp = self.enemy.hp
+                pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8,
+                           s=f"HP {self.enemy.hp}/{self.enemy.max_hp}",
+                           col=0)
+                pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8, s=f"HP {show_hp}/{self.enemy.max_hp}",
+                           col=8)
             pyxel.text(x=WIDTH // 8, y=HEIGHT // 16, s=f"{player.name}'s ATTACK!!", col=7)
             pyxel.text(x=WIDTH // 8, y=HEIGHT // 16 + 8, s=f"{player.damage} damages to {self.enemy.name}!", col=7)
             self.last_attack_log = f"{player.name}'s ATTACK!!\n{player.damage} damages to {self.enemy.name}!"
-            pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8, s=f"HP {self.enemy.hp}/{self.enemy.max_hp}",
-                       col=0)
-            pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8, s=f"HP {show_hp}/{self.enemy.max_hp}",
-                       col=14)
+            # pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8, s=f"HP {self.enemy.hp}/{self.enemy.max_hp}",
+            #            col=0)
+            # pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8, s=f"HP {show_hp}/{self.enemy.max_hp}",
+            #            col=14)
+            if 25 <= (pyxel.frame_count - self.fc) % 50 < 30:
+                self.effect_when_enemy_is_attacked()
+            self.attack_effect()
         else:
             mp_after_skill = 1
             if not player.damaged:
@@ -266,19 +288,36 @@ class App:
                 if player.skill_type == "attack":
                     if (pyxel.frame_count - self.fc) % 50 < 25:
                         show_hp = random.randint(1, self.enemy.max_hp)
+                        pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8,
+                                   s=f"HP {self.enemy.hp}/{self.enemy.max_hp}",
+                                   col=0)
+                        pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8,
+                                   s=f"HP {show_hp}/{self.enemy.max_hp}",
+                                   col=14)
                     else:
                         show_hp = self.enemy.hp
+                        pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8,
+                                   s=f"HP {self.enemy.hp}/{self.enemy.max_hp}",
+                                   col=0)
+                        pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8,
+                                   s=f"HP {show_hp}/{self.enemy.max_hp}",
+                                   col=8)
                     pyxel.text(x=WIDTH // 8, y=HEIGHT // 16 + 8, s=f"{player.damage} damages to {self.enemy.name}!",
                                col=7)
-                    pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8,
-                               s=f"HP {self.enemy.hp}/{self.enemy.max_hp}",
-                               col=0)
-                    pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8, s=f"HP {show_hp}/{self.enemy.max_hp}",
-                               col=14)
+                    # pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8,
+                    #            s=f"HP {self.enemy.hp}/{self.enemy.max_hp}",
+                    #            col=0)
+                    # pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8, s=f"HP {show_hp}/{self.enemy.max_hp}",
+                    #            col=14)
                     self.last_attack_log = f"{player.name}'s SKILL! {player.skill_name}!!\n{player.damage} " \
                                            f"damages to {self.enemy.name}!"
+                    if 25 <= (pyxel.frame_count - self.fc) % 50 < 30:
+                        self.effect_when_enemy_is_attacked()
+                    if player.name == "Aldo":
+                        self.x_blade_effect()
+                    else:
+                        self.attack_effect()
                 elif player.skill_type == "heal":
-                    self.heal_effect()
                     pyxel.text(x=WIDTH // 8, y=HEIGHT // 16 + 8, s=f"Everyone gets {player.damage} points of heal!!",
                                col=7)
                     for p in self.player_list:
@@ -287,11 +326,115 @@ class App:
                             pyxel.text(x=p.place, y=self.text_height + 8, s=f"HP {p.hp}/{p.max_hp}", col=0)
                             pyxel.text(x=p.place, y=self.text_height + 8,
                                        s=f"HP {random.randint(1, p.max_hp)}/{p.max_hp}", col=3)
+                    self.heal_effect()
                 pyxel.text(x=player.place, y=self.text_height + 16, s=f"MP {player.mp}/{player.max_mp}", col=12)
                 if (pyxel.frame_count - self.fc) % 50 < 25:
                     pyxel.text(x=player.place, y=self.text_height + 16, s=f"MP {player.mp}/{player.max_mp}", col=0)
                     pyxel.text(x=player.place, y=self.text_height + 16,
                                s=f"MP {random.randint(1, player.max_mp)}/{player.max_mp}", col=12)
+
+    def effect_when_player_is_attacked(self, player):
+        pyxel.text(x=player.place, y=self.text_height, s=player.name, col=0)
+        pyxel.text(x=player.place, y=self.text_height + 8, s=f"HP {player.hp}/{player.max_hp}", col=0)
+        pyxel.text(x=player.place, y=self.text_height + 16, s=f"MP {player.mp}/{player.max_mp}", col=0)
+        x = random.randint(-2, 2)
+        y = random.randint(-2, 2)
+        pyxel.text(x=player.place + x, y=self.text_height + y, s=player.name, col=7)
+        pyxel.text(x=player.place + x, y=self.text_height + 8 + y, s=f"HP {player.hp}/{player.max_hp}", col=8)
+        pyxel.text(x=player.place + x, y=self.text_height + 16 + y, s=f"MP {player.mp}/{player.max_mp}", col=7)
+
+    def effect_when_enemy_is_attacked(self):
+        pyxel.text(x=self.enemy_width + 32, y=self.enemy_height, s=self.enemy.name, col=0)
+        pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8, s=f"HP {self.enemy.hp}/{self.enemy.max_hp}", col=0)
+        pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 16, s=f"MP {self.enemy.mp}/{self.enemy.max_mp}",
+                   col=0)
+        x = random.randint(-2, 2)
+        y = random.randint(-2, 2)
+        pyxel.text(x=self.enemy_width + 32 + x, y=self.enemy_height + y, s=self.enemy.name, col=7)
+        pyxel.text(x=self.enemy_width + 32 + x, y=self.enemy_height + 8 + y,
+                   s=f"HP {self.enemy.hp}/{self.enemy.max_hp}", col=8)
+        pyxel.text(x=self.enemy_width + 32 + x, y=self.enemy_height + 16 + y,
+                   s=f"MP {self.enemy.mp}/{self.enemy.max_mp}",
+                   col=7)
+        x = random.randint(-2, 2)
+        y = random.randint(-2, 2)
+        pyxel.blt(x=self.enemy_width, y=self.enemy_height, img=0, u=16, v=16, w=16, h=16)
+        pyxel.blt(x=self.enemy_width + x, y=self.enemy_height + y, img=0, u=0, v=0, w=16, h=16)
+
+    def attack_effect(self):
+        # pyxel.blt(x=self.enemy_width - 8, y=self.enemy_height - 8, img=2, u=0, v=0, w=31, h=31, colkey=0)
+        effect_sp = 3
+        length = 12
+        effect_fc = ((pyxel.frame_count - self.fc) % SPEED) * effect_sp
+        x = self.enemy_width - 8
+        y = self.enemy_height - 8
+        u = 0
+        v = 0
+        w = 32
+        h = 32
+        frag = True
+
+        if effect_fc < length:
+            h = effect_fc
+        elif effect_fc < 32:
+            y += effect_fc - length
+            v += effect_fc - length
+            h = length
+        elif effect_fc < 32 + length:
+            y += effect_fc - length
+            v += effect_fc - length
+            h = 32 + length - effect_fc
+        else:
+            frag = False
+        if frag:
+            pyxel.blt(x, y, 2, u, v, w, h, 0)
+
+    def x_blade_effect(self):
+        effect_sp = 2
+        effect_fc = ((pyxel.frame_count - self.fc) % SPEED) * effect_sp
+        x = self.enemy_width - 8
+        y = self.enemy_height - 8
+        u = 0
+        v = 32
+        w = 32
+        h = 32
+        frag = True
+        frag_2 = True
+
+        x += random.randint(-1, 1)
+        y += random.randint(-1, 1)
+
+        if effect_fc < 32:
+            h = effect_fc
+        else:
+            frag = False
+        if frag:
+            pyxel.blt(x, y, 2, u, v, w, h, 0)
+        else:
+            effect_fc -= 32
+            if effect_fc < 32:
+                h = effect_fc
+            else:
+                frag_2 = False
+            if frag_2:
+                pyxel.blt(x, y, 2, u, v, w, 32, 0)
+                pyxel.blt(x, y, 2, u, v + 32, w, h, 0)
+            else:
+                pyxel.blt(self.enemy_width - 8, self.enemy_height - 8, 2, u, v, w, 32, 0)
+                pyxel.blt(self.enemy_width - 8, self.enemy_height - 8, 2, u, v + 32, w, 32, 0)
+
+        r = (effect_fc + 1) * 3
+        x = self.enemy_width + 8
+        y = self.enemy_height + 8
+        for _ in range(r * 2):
+            a = random.randint(-r, r)
+            c = int(math.sqrt((r ** 2) - (a ** 2)))
+            b = random.randint(-c, c)
+            u = random.randint(32, 34)
+            v = 8
+            w = 1
+            h = 1
+            pyxel.blt(x + a, y + b, 2, u, v, w, h, 0)
 
     def heal_effect(self):
         if (pyxel.frame_count - self.fc) % SPEED < 50:
@@ -320,11 +463,13 @@ class App:
                    col=7)
         self.last_attack_log = f"{self.enemy.name}'s ATTACK!!\nEveryone accepted damages from {self.enemy.name}!"
         for player in self.player_list:
-            pyxel.text(x=player.place, y=self.text_height + 8, s=f"HP {player.hp}/{player.max_hp}", col=14)
+            pyxel.text(x=player.place, y=self.text_height + 8, s=f"HP {player.hp}/{player.max_hp}", col=8)
             if (pyxel.frame_count - self.fc) % 50 < 25 and player.is_alive:
                 pyxel.text(x=player.place, y=self.text_height + 8, s=f"HP {player.hp}/{player.max_hp}", col=0)
                 pyxel.text(x=player.place, y=self.text_height + 8,
                            s=f"HP {random.randint(1, player.max_hp)}/{player.max_hp}", col=14)
+            elif 25 <= (pyxel.frame_count - self.fc) % 50 < 30 and player.is_alive:
+                self.effect_when_player_is_attacked(player)
 
 
 class Player:
