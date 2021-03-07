@@ -28,7 +28,7 @@ class App:
             Player(name="Aldo", hp=140, mp=80, at=120, df=100, sp=210, place=self.player_w),
             Player(name="Cyrus", hp=120, mp=100, at=150, df=70, sp=230, place=self.player_w + WIDTH // 4),
             Player(name="Riica", hp=130, mp=150, at=100, df=90, sp=220, place=self.player_w + WIDTH // 2),
-            Player(name="Anabel", hp=200, mp=120, at=130, df=130, sp=190, place=self.player_w + (WIDTH * 3) // 4),
+            Player(name="Anabel", hp=200, mp=120, at=130, df=130, sp=19000, place=self.player_w + (WIDTH * 3) // 4),
         ]
         self.enemy = Enemy(name="Guildna", hp=1000, mp=1000, at=100, df=50, sp=2000)
 
@@ -48,6 +48,11 @@ class App:
         for player in self.player_list:
             self.action_turn_list.append(player)
         self.action_turn_list.append(self.enemy)
+
+        self.light_ball_list = []
+        self.fire_ball_list = []
+        for _ in range(50):
+            self.fire_ball_list.append(FireBall())
 
         self.mode = TITLE
         self.fc = -1
@@ -71,6 +76,7 @@ class App:
         self.lose_judge()
         self.update_lose()
         self.reset_running_to_selecting()
+        self.update_fire_ball()
 
     def update_title(self):
         if self.mode == TITLE:
@@ -142,12 +148,18 @@ class App:
                 self.select_list[i] = True
             self.mode = SELECTING
 
+    def update_fire_ball(self):
+        for ball in self.fire_ball_list:
+            ball.update()
+
     def draw(self):
         pyxel.cls(0)
-        pyxel.blt(x=self.enemy_width, y=self.enemy_height, img=0, u=0, v=0, w=16, h=16)
+        pyxel.blt(x=self.enemy_width, y=self.enemy_height, img=0, u=0, v=16 * ((pyxel.frame_count // 4) % 8), w=16,
+                  h=16)
         self.draw_players_and_enemy()
-        pyxel.blt(x=self.enemy_width, y=self.enemy_height, img=1, u=0, v=(pyxel.frame_count % 11) * 16, w=16, h=16,
-                  colkey=0)
+        self.draw_fire_ball()
+        # pyxel.blt(x=self.enemy_width, y=self.enemy_height, img=1, u=0, v=(pyxel.frame_count % 11) * 16, w=16, h=16,
+        #           colkey=0)
 
         self.draw_selected_choices()
         self.draw_select()
@@ -246,6 +258,10 @@ class App:
                     pyxel.text(x=self.player_list[i].place, y=self.player_h + 32, s=f">SKILL", col=10)
                     pyxel.text(x=self.player_list[i].place, y=self.player_h + 24, s=f">ATTACK", col=0)
 
+    def draw_fire_ball(self):
+        for ball in self.fire_ball_list:
+            ball.draw()
+
     @staticmethod
     def title_draw():
         pyxel.cls(0)
@@ -331,6 +347,8 @@ class App:
                         self.x_blade_effect()
                     elif player.name == "Cyrus":
                         self.nirvana_slash_effect()
+                    elif player.name == "Anabel":
+                        self.holy_sword_of_prayer()
                     else:
                         self.attack_effect()
                 elif player.skill_type == "heal":
@@ -484,6 +502,26 @@ class App:
             y = random.randint(min_y, max_y)
             pyxel.blt(x, y, 2, u, v, w, h, 0)
 
+    def holy_sword_of_prayer(self):
+        if (pyxel.frame_count - self.fc) % SPEED == 0:
+            self.light_ball_list = []
+            for _ in range(150):
+                x = random.randint(0, WIDTH)
+                y = random.randint(-HEIGHT, 0)
+                self.light_ball_list.append(LightBall(x, y))
+        effect_fc = ((pyxel.frame_count - self.fc) % SPEED) // 5 - 1
+        x = self.enemy_width - 8 + random.randint(-4, 4)
+        y = self.enemy_height - 8 + random.randint(-4, 4)
+        if 0 <= effect_fc < 8:
+            u = 16
+            v = effect_fc * 32
+            w = 32
+            h = 32
+            pyxel.blt(x, y, 1, u, v, w, h, 0)
+        for ball in self.light_ball_list:
+            ball.update()
+            ball.draw()
+
     def heal_effect(self):
         if (pyxel.frame_count - self.fc) % SPEED < SPEED:
             start = (((pyxel.frame_count - self.fc) % SPEED) * (WIDTH - 7) // 20) - SPEED * 2
@@ -572,6 +610,46 @@ class Enemy:
         self.damage = 0
 
         self.is_alive = True
+
+
+class LightBall:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.col_u = random.randint(34, 35)
+
+    def update(self):
+        self.x += random.randint(-1, 1)
+        self.y += random.randint(2, 3)
+
+    def draw(self):
+        pyxel.blt(self.x, self.y, 2, self.col_u, 8, 1, 1, 0)
+
+
+class FireBall:
+    def __init__(self):
+        self.x = random.randint(0, WIDTH)
+        self.y = random.randint(0, HEIGHT // 2)
+        self.col_v = random.randint(8, 9)
+
+    def update(self):
+        self.x += random.randint(-1, 1)
+        self.y -= 1 if random.randint(0, 5) < 5 else 0
+        if self.x < 0:
+            self.x = WIDTH
+            self.col_v = random.randint(8, 9)
+        elif self.x > WIDTH:
+            self.x = 0
+            self.col_v = random.randint(8, 9)
+        if self.y < 0:
+            self.y = HEIGHT // 2
+            self.col_v = random.randint(8, 9)
+        elif self.y > HEIGHT // 2:
+            self.y = 0
+            self.col_v = random.randint(8, 9)
+
+    def draw(self):
+        pyxel.blt(self.x, self.y, 2, 32, self.col_v, 1, 1, 0)
 
 
 App()
