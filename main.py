@@ -283,7 +283,7 @@ class App:
 
         if player.is_attack or player.skill_type == "attack":
             if SPEED // 2 <= (pyxel.frame_count - self.fc) % SPEED:
-                message = f"{player.damage} damages to {self.enemy.name}!"
+                message = f"{player.damage} damage to {self.enemy.name}!"
                 ans = self.return_message(message, (pyxel.frame_count - self.fc) % SPEED - SPEED // 2)
                 pyxel.text(x=self.text_w, y=self.text_h + 8, s=f"{ans}", col=7)
 
@@ -329,6 +329,8 @@ class App:
                         self.effect_when_enemy_is_attacked()
                     if player.name == "Aldo":
                         self.x_blade_effect()
+                    elif player.name == "Cyrus":
+                        self.nirvana_slash_effect()
                     else:
                         self.attack_effect()
                 elif player.skill_type == "heal":
@@ -450,15 +452,37 @@ class App:
         y = self.enemy_height + 8
         if r > 100:
             r = 100
+        v = 8
+        w = 1
+        h = 1
         for _ in range(r * 2):
             a = random.randint(-r, r)
             c = int(math.sqrt((r ** 2) - (a ** 2)))
             b = random.randint(-c, c)
             u = random.randint(32, 34)
-            v = 8
-            w = 1
-            h = 1
             pyxel.blt(x + a, y + b, 2, u, v, w, h, 0)
+
+    def nirvana_slash_effect(self):
+        theta = ((pyxel.frame_count - self.fc) % SPEED) // 2
+        x1 = int(math.cos(theta) * 10) + self.enemy_width
+        y1 = int(math.sin(theta) * 10) + self.enemy_height
+        x2 = int(math.cos(theta + 2 * math.pi / 3) * 10) + self.enemy_width + 16
+        y2 = int(math.sin(theta + 2 * math.pi / 3) * 10) + self.enemy_height
+        x3 = int(math.cos(theta + 4 * math.pi / 3) * 10) + self.enemy_width + 8
+        y3 = int(math.sin(theta + 4 * math.pi / 3) * 10) + self.enemy_height + 16
+        pyxel.trib(x1, y1, x2, y2, x3, y3, 7)
+        u = 34
+        v = 8
+        w = 1
+        h = 1
+        min_x = min(x1, x2, x3) - 16
+        max_x = max(x1, x2, x3) + 16
+        min_y = min(y1, y2, y3) - 16
+        max_y = max(y1, y2, y3) + 16
+        for _ in range(int(math.cos(theta) * 10)):
+            x = random.randint(min_x, max_x)
+            y = random.randint(min_y, max_y)
+            pyxel.blt(x, y, 2, u, v, w, h, 0)
 
     def heal_effect(self):
         if (pyxel.frame_count - self.fc) % SPEED < SPEED:
@@ -475,23 +499,18 @@ class App:
             for player in self.player_list:
                 player.hp -= self.enemy.damage - int(player.df * random.uniform(0.4, 0.5))
 
-        pyxel.text(x=self.text_w, y=self.text_h, s=f"{self.enemy.name}'s ATTACK!!", col=7)
+        message = f"{self.enemy.name}'s ATTACK!!"
+        ans = self.return_message(message, (pyxel.frame_count - self.fc) % SPEED)
+        pyxel.text(x=self.text_w, y=self.text_h, s=f"{ans}", col=7)
         if SPEED // 2 <= (pyxel.frame_count - self.fc) % SPEED:
-            pyxel.text(x=self.text_w, y=self.text_h + 8, s=f"Everyone accepted damages from {self.enemy.name}!",
-                       col=7)
-        # last??????????????????????????????????????????????????????????????????????????????????????????????????
-        self.last_attack_log = f"{self.enemy.name}'s ATTACK!!\nEveryone accepted damages from {self.enemy.name}!"
-
+            message = f"Everyone took damage from {self.enemy.name}!"
+            ans = self.return_message(message, (pyxel.frame_count - self.fc) % SPEED - SPEED // 2)
+            pyxel.text(x=self.text_w, y=self.text_h + 8, s=f"{ans}", col=7)
         for player in self.player_list:
             if SPEED // 2 <= (pyxel.frame_count - self.fc) % SPEED < SPEED // 2 + 5 and player.is_alive:
                 self.effect_when_player_is_attacked(player)
             elif SPEED // 2 + 5 <= (pyxel.frame_count - self.fc) % SPEED and player.is_alive:
                 pyxel.text(x=player.place, y=self.player_h + 8, s=f"HP {player.hp}/{player.max_hp}", col=8)
-
-    def draw_player_random_hp(self, player):
-        pyxel.text(x=player.place, y=self.player_h + 8, s=f"HP {player.hp}/{player.max_hp}", col=0)
-        pyxel.text(x=player.place, y=self.player_h + 8,
-                   s=f"HP {random.randint(1, player.max_hp)}/{player.max_hp}", col=14)
 
     def hide_player_status(self, player):
         pyxel.text(x=player.place, y=self.player_h, s=player.name, col=0)
