@@ -25,12 +25,12 @@ class App:
         self.enemy_height = HEIGHT * 3 // 8 - 12
         self.enemy_width = WIDTH // 2 - 16
         self.player_list = [
-            Player(name="Aldo", hp=140, mp=80, at=120, df=100, sp=21000, place=self.player_w),
+            Player(name="Aldo", hp=140, mp=80, at=120, df=100, sp=210, place=self.player_w),
             Player(name="Cyrus", hp=120, mp=100, at=150, df=70, sp=230, place=self.player_w + WIDTH // 4),
             Player(name="Riica", hp=130, mp=150, at=100, df=90, sp=220, place=self.player_w + WIDTH // 2),
             Player(name="Anabel", hp=200, mp=120, at=130, df=130, sp=19000, place=self.player_w + (WIDTH * 3) // 4),
         ]
-        self.enemy = Enemy(name="Guildna", hp=1000, mp=1000, at=100, df=50, sp=2000)
+        self.enemy = Enemy(name="Guildna", hp=100, mp=1000, at=100, df=50, sp=2000)
 
         self.player_list[0].set_skill(skill_name="X BLADE", skill_type="attack", rate=2, skill_mp=40)
         self.player_list[1].set_skill(skill_name="NIRVANA SLASH", skill_type="attack", rate=1.7, skill_mp=25)
@@ -48,6 +48,7 @@ class App:
         for player in self.player_list:
             self.action_turn_list.append(player)
         self.action_turn_list.append(self.enemy)
+        self.alive_list = []
 
         self.light_ball_list = []
         self.aldo_ball_list = []
@@ -198,6 +199,11 @@ class App:
                 message = "VICTORY!!!!!!!\nYOU WIN!!!!!!!!!!!!!"
                 ans = self.return_message(message, pyxel.frame_count - self.win_fc - SPEED // 2)
                 pyxel.text(x=self.text_w, y=self.text_h, s=f"{ans}", col=10)
+                self.hide_enemy_image()
+                v = ((pyxel.frame_count - self.win_fc - SPEED // 2) // 5) * 16
+                if 14 * 16 < v:
+                    v = 14 * 16
+                pyxel.blt(x=self.enemy_width, y=self.enemy_height, img=0, u=80, v=v, w=16, h=16, colkey=0)
             else:
                 pyxel.cls(7)
                 message = "Congratulations!"
@@ -442,7 +448,7 @@ class App:
         effect_fc = ((pyxel.frame_count - self.fc) % SPEED) * effect_sp
         x = self.enemy_width - 8
         y = self.enemy_height - 8
-        u = 0
+        u = 0 if pyxel.frame_count % 2 == 0 else 32
         v = 32
         w = 32
         h = 32
@@ -471,20 +477,6 @@ class App:
                 pyxel.blt(self.enemy_width - 8, self.enemy_height - 8, 2, u, v, w, 32, 0)
                 pyxel.blt(self.enemy_width - 8, self.enemy_height - 8, 2, u, v + 32, w, 32, 0)
 
-        # r = (effect_fc + 1) * 3
-        # x = self.enemy_width + 8
-        # y = self.enemy_height + 8
-        # if r > 100:
-        #     r = 100
-        # v = 8
-        # w = 1
-        # h = 1
-        # for _ in range(r * 2):
-        #     a = random.randint(-r, r)
-        #     c = int(math.sqrt((r ** 2) - (a ** 2)))
-        #     b = random.randint(-c, c)
-        #     u = random.randint(32, 34)
-        #     pyxel.blt(x + a, y + b, 2, u, v, w, h, 0)
         if (pyxel.frame_count - self.fc) % SPEED == 0:
             self.aldo_ball_list = []
         elif 10 <= (pyxel.frame_count - self.fc) % SPEED < 15:
@@ -524,11 +516,11 @@ class App:
             self.light_ball_list = []
             for _ in range(150):
                 self.light_ball_list.append(LightBall(random.randint(0, WIDTH), random.randint(-HEIGHT, 0)))
-        effect_fc = ((pyxel.frame_count - self.fc) % SPEED) // 5 - 1
+        effect_fc = ((pyxel.frame_count - self.fc) % SPEED) // 5 - 2
         x = self.enemy_width - 8 + random.randint(-4, 4)
         y = self.enemy_height - 8 + random.randint(-4, 4)
         if 0 <= effect_fc < 8:
-            u = 16
+            u = 16 if pyxel.frame_count % 2 == 0 else 80
             v = effect_fc * 32
             w = 32
             h = 32
@@ -547,23 +539,50 @@ class App:
                 pyxel.blt(x=x, y=y, img=2, u=32, v=0, w=7, h=7, colkey=0)
 
     def enemy_attack(self):
-        if (pyxel.frame_count - self.fc) % SPEED == SPEED // 2 - 1:
+        efc = (pyxel.frame_count - self.fc) % SPEED
+        self.draw_enemy_attack_self(pyxel.frame_count % 2)
+        if efc == 0:
             self.enemy.damage = int(self.enemy.at * random.uniform(0.8, 1.2))
-            for player in self.player_list:
-                player.hp -= self.enemy.damage - int(player.df * random.uniform(0.4, 0.5))
-
         message = f"{self.enemy.name}'s ATTACK!!"
         ans = self.return_message(message, (pyxel.frame_count - self.fc) % SPEED)
         pyxel.text(x=self.text_w, y=self.text_h, s=f"{ans}", col=7)
-        if SPEED // 2 <= (pyxel.frame_count - self.fc) % SPEED:
+        if SPEED // 2 <= efc:
             message = f"Everyone took damage from {self.enemy.name}!"
-            ans = self.return_message(message, (pyxel.frame_count - self.fc) % SPEED - SPEED // 2)
+            ans = self.return_message(message, efc - SPEED // 2)
             pyxel.text(x=self.text_w, y=self.text_h + 8, s=f"{ans}", col=7)
-        for player in self.player_list:
-            if SPEED // 2 <= (pyxel.frame_count - self.fc) % SPEED < SPEED // 2 + 5 and player.is_alive:
+
+        if efc == 0:
+            self.alive_list = []
+            for player in self.player_list:
+                if player.is_alive:
+                    self.alive_list.append(player)
+        for i in range(len(self.alive_list)):
+            player = self.alive_list[i]
+            self.draw_enemy_attack_fire(player, i * 3)
+            if SPEED // 2 + i * 9 == efc:
+                player.hp -= self.enemy.damage - int(player.df * random.uniform(0.4, 0.5))
+            if SPEED // 2 + i * 9 <= efc < SPEED // 2 + i * 9 + 5:
                 self.effect_when_player_is_attacked(player)
-            elif SPEED // 2 + 5 <= (pyxel.frame_count - self.fc) % SPEED and player.is_alive:
+            elif SPEED // 2 + i * 9 + 5 <= efc:
                 pyxel.text(x=player.place, y=self.player_h + 8, s=f"HP {player.hp}/{player.max_hp}", col=8)
+
+    def draw_enemy_attack_self(self, index):
+        index *= 2
+        effect_fc = ((pyxel.frame_count - self.fc) % SPEED) // 3
+        if effect_fc <= 18:
+            self.hide_enemy_image()
+            pyxel.bltm(x=self.enemy_width, y=self.enemy_height, tm=0, u=index, v=effect_fc * 2, w=2, h=2, colkey=0)
+
+    def draw_enemy_attack_fire(self, player, fc_point):
+        effect_fc = ((pyxel.frame_count - self.fc) % SPEED - SPEED // 4) // 3 - fc_point
+        x = player.place + random.randint(-4, 4)
+        y = self.player_h + random.randint(-4, 4)
+        if 0 <= effect_fc < 8:
+            u = 48
+            v = effect_fc * 32
+            w = 32
+            h = 32
+            pyxel.blt(x, y, 1, u, v, w, h, 0)
 
     def hide_player_status(self, player):
         pyxel.text(x=player.place, y=self.player_h, s=player.name, col=0)
@@ -629,10 +648,9 @@ class Enemy:
 
 class LightBall:
     def __init__(self, x, y):
-        col_list = [7, 10]
         self.x = x
         self.y = y
-        self.col = col_list[random.randint(0, len(col_list) - 1)]
+        self.col = 7
 
     def update(self):
         self.x += random.randint(-1, 1)
