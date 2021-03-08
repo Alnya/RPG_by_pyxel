@@ -25,7 +25,7 @@ class App:
         self.enemy_height = HEIGHT * 3 // 8 - 12
         self.enemy_width = WIDTH // 2 - 16
         self.player_list = [
-            Player(name="Aldo", hp=140, mp=80, at=120, df=100, sp=210, place=self.player_w),
+            Player(name="Aldo", hp=140, mp=80, at=120, df=100, sp=21000, place=self.player_w),
             Player(name="Cyrus", hp=120, mp=100, at=150, df=70, sp=230, place=self.player_w + WIDTH // 4),
             Player(name="Riica", hp=130, mp=150, at=100, df=90, sp=220, place=self.player_w + WIDTH // 2),
             Player(name="Anabel", hp=200, mp=120, at=130, df=130, sp=19000, place=self.player_w + (WIDTH * 3) // 4),
@@ -50,9 +50,13 @@ class App:
         self.action_turn_list.append(self.enemy)
 
         self.light_ball_list = []
+        self.aldo_ball_list = []
         self.fire_ball_list = []
         for _ in range(50):
             self.fire_ball_list.append(FireBall())
+        self.title_ball_list = []
+        for _ in range(30):
+            self.title_ball_list.append(TitleBall())
 
         self.mode = TITLE
         self.fc = -1
@@ -262,12 +266,14 @@ class App:
         for ball in self.fire_ball_list:
             ball.draw()
 
-    @staticmethod
-    def title_draw():
+    def title_draw(self):
         pyxel.cls(0)
         pyxel.text(x=WIDTH // 2 - 24, y=HEIGHT // 2 - 4, s=f"GAME START", col=7 if pyxel.frame_count % 40 < 20 else 8)
         pyxel.text(x=WIDTH // 2 - 27, y=HEIGHT * 3 // 4 - 8, s=f"PRESS  ENTER",
                    col=9 if pyxel.frame_count % 6 < 3 else 10)
+        for ball in self.title_ball_list:
+            ball.update()
+            ball.draw()
 
     def draw_dead(self):
         for player in self.player_list:
@@ -465,20 +471,31 @@ class App:
                 pyxel.blt(self.enemy_width - 8, self.enemy_height - 8, 2, u, v, w, 32, 0)
                 pyxel.blt(self.enemy_width - 8, self.enemy_height - 8, 2, u, v + 32, w, 32, 0)
 
-        r = (effect_fc + 1) * 3
-        x = self.enemy_width + 8
-        y = self.enemy_height + 8
-        if r > 100:
-            r = 100
-        v = 8
-        w = 1
-        h = 1
-        for _ in range(r * 2):
-            a = random.randint(-r, r)
-            c = int(math.sqrt((r ** 2) - (a ** 2)))
-            b = random.randint(-c, c)
-            u = random.randint(32, 34)
-            pyxel.blt(x + a, y + b, 2, u, v, w, h, 0)
+        # r = (effect_fc + 1) * 3
+        # x = self.enemy_width + 8
+        # y = self.enemy_height + 8
+        # if r > 100:
+        #     r = 100
+        # v = 8
+        # w = 1
+        # h = 1
+        # for _ in range(r * 2):
+        #     a = random.randint(-r, r)
+        #     c = int(math.sqrt((r ** 2) - (a ** 2)))
+        #     b = random.randint(-c, c)
+        #     u = random.randint(32, 34)
+        #     pyxel.blt(x + a, y + b, 2, u, v, w, h, 0)
+        if (pyxel.frame_count - self.fc) % SPEED == 0:
+            self.aldo_ball_list = []
+        elif 10 <= (pyxel.frame_count - self.fc) % SPEED < 15:
+            for _ in range(10):
+                self.aldo_ball_list.append(AldoBall())
+        elif 35 <= (pyxel.frame_count - self.fc) % SPEED < 45:
+            for _ in range(10):
+                self.aldo_ball_list.append(AldoBall())
+        for ball in self.aldo_ball_list:
+            ball.update()
+            ball.draw()
 
     def nirvana_slash_effect(self):
         theta = ((pyxel.frame_count - self.fc) % SPEED) // 2
@@ -506,9 +523,7 @@ class App:
         if (pyxel.frame_count - self.fc) % SPEED == 0:
             self.light_ball_list = []
             for _ in range(150):
-                x = random.randint(0, WIDTH)
-                y = random.randint(-HEIGHT, 0)
-                self.light_ball_list.append(LightBall(x, y))
+                self.light_ball_list.append(LightBall(random.randint(0, WIDTH), random.randint(-HEIGHT, 0)))
         effect_fc = ((pyxel.frame_count - self.fc) % SPEED) // 5 - 1
         x = self.enemy_width - 8 + random.randint(-4, 4)
         y = self.enemy_height - 8 + random.randint(-4, 4)
@@ -614,16 +629,43 @@ class Enemy:
 
 class LightBall:
     def __init__(self, x, y):
+        col_list = [7, 10]
         self.x = x
         self.y = y
-        self.col_u = random.randint(34, 35)
+        self.col = col_list[random.randint(0, len(col_list) - 1)]
 
     def update(self):
         self.x += random.randint(-1, 1)
-        self.y += random.randint(2, 3)
+        self.y += random.randint(1, 5)
 
     def draw(self):
-        pyxel.blt(self.x, self.y, 2, self.col_u, 8, 1, 1, 0)
+        pyxel.pset(self.x, self.y, self.col)
+        # pyxel.blt(self.x, self.y, 2, self.col_u, 8, 1, 1, 0)
+
+
+class AldoBall:
+    def __init__(self):
+        col_list = [8, 12, 7, 7]
+        self.col = col_list[random.randint(0, 3)]
+        self.cx = WIDTH // 2 - 16 + 8
+        self.cy = HEIGHT * 3 // 8 - 12 + 8
+        self.pi = random.uniform(0, 2 * math.pi)
+        self.r = 2
+        self.x = 0
+        self.y = 0
+        self.save_x = 1
+        self.save_y = 1
+
+    def update(self):
+        self.pi += math.pi / 16
+        self.save_x += random.uniform(0, 3)
+        self.save_y += random.uniform(0, 3)
+        self.x = int(self.cx + math.cos(self.pi) * self.r * self.save_x)
+        self.y = int(self.cy + math.sin(self.pi) * self.r * self.save_y)
+
+    def draw(self):
+        # pyxel.circ(self.x, self.y, 1, self.col)
+        pyxel.pset(self.x, self.y, self.col)
 
 
 class FireBall:
@@ -650,6 +692,36 @@ class FireBall:
 
     def draw(self):
         pyxel.blt(self.x, self.y, 2, 32, self.col_v, 1, 1, 0)
+
+
+class TitleBall:
+    def __init__(self):
+        self.x = random.randint(0, WIDTH)
+        self.y = random.randint(0, HEIGHT)
+        self.col = random.randint(1, 15)
+        self.r = 1
+
+    def update(self):
+        self.x += random.randint(1, 10)
+        self.y -= random.randint(1, 3)
+        if self.x < 0:
+            self.x = WIDTH
+            self.update_col()
+        elif self.x > WIDTH:
+            self.x = 0
+            self.update_col()
+        if self.y <= 0:
+            self.y = HEIGHT
+            self.update_col()
+        elif self.y > HEIGHT:
+            self.y = 0
+            self.update_col()
+
+    def update_col(self):
+        self.col = random.randint(1, 15)
+
+    def draw(self):
+        pyxel.circ(self.x, self.y, self.r, self.col)
 
 
 App()
