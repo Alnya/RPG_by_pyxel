@@ -25,12 +25,12 @@ class App:
         self.enemy_height = HEIGHT * 3 // 8 - 12
         self.enemy_width = WIDTH // 2 - 16
         self.player_list = [
-            Player(name="Aldo", hp=140, mp=80, at=120, df=100, sp=210, place=self.player_w),
-            Player(name="Cyrus", hp=120, mp=100, at=150, df=70, sp=230, place=self.player_w + WIDTH // 4),
-            Player(name="Riica", hp=130, mp=150, at=100, df=90, sp=220, place=self.player_w + WIDTH // 2),
-            Player(name="Anabel", hp=200, mp=120, at=130, df=130, sp=19000, place=self.player_w + (WIDTH * 3) // 4),
+            Player(name="Aldo", hp=140, mp=80, at=120, df=100, sp=300, place=self.player_w),
+            Player(name="Cyrus", hp=120, mp=100, at=150, df=80, sp=330, place=self.player_w + WIDTH // 4),
+            Player(name="Riica", hp=130, mp=150, at=100, df=90, sp=320, place=self.player_w + WIDTH // 2),
+            Player(name="Anabel", hp=200, mp=120, at=130, df=110, sp=290, place=self.player_w + (WIDTH * 3) // 4),
         ]
-        self.enemy = Enemy(name="Guildna", hp=100, mp=1000, at=100, df=50, sp=2000)
+        self.enemy = Enemy(name="Guildna", hp=1000, mp=1000, at=100, df=50, sp=310)
 
         self.player_list[0].set_skill(skill_name="X BLADE", skill_type="attack", rate=2, skill_mp=40)
         self.player_list[1].set_skill(skill_name="NIRVANA SLASH", skill_type="attack", rate=1.7, skill_mp=25)
@@ -170,6 +170,7 @@ class App:
         self.draw_select()
 
         self.draw_running()
+        self.check_player_mp()
         self.draw_dead()
         self.draw_win()
         self.draw_lose()
@@ -294,6 +295,11 @@ class App:
                 pyxel.text(x=player.place, y=self.player_h + 24, s=f">", col=0)
                 pyxel.text(x=player.place, y=self.player_h + 32, s=f">", col=0)
 
+    def check_player_mp(self):
+        for player in self.player_list:
+            if player.is_alive and player.mp == 0:
+                self.draw_player_mp_red(player)
+
     def define_action_turn_list(self):
         dic = {}
         for player in self.player_list:
@@ -307,53 +313,54 @@ class App:
             self.action_turn_list.append(i)
 
     def attack(self, player):
+        efc = (pyxel.frame_count - self.fc) % SPEED
         self.attacker_status_effect(player)
 
         if player.is_attack or player.skill_type == "attack":
-            if SPEED // 2 <= (pyxel.frame_count - self.fc) % SPEED:
+            if SPEED // 2 <= efc:
                 message = f"{player.damage} damage to {self.enemy.name}!"
-                ans = self.return_message(message, (pyxel.frame_count - self.fc) % SPEED - SPEED // 2)
+                ans = self.return_message(message, efc - SPEED // 2)
                 pyxel.text(x=self.text_w, y=self.text_h + 8, s=f"{ans}", col=7)
 
         if player.is_attack:
-            if (pyxel.frame_count - self.fc) % SPEED == SPEED // 2 - 1:
+            if efc == SPEED // 2 - 1:
                 player.damage = int(player.at * random.uniform(0.9, 1.1)) - int(
                     self.enemy.df * random.uniform(0.4, 0.6))
                 self.enemy.hp -= player.damage
             message = f"{player.name}'s ATTACK!!"
-            ans = self.return_message(message, (pyxel.frame_count - self.fc) % SPEED)
+            ans = self.return_message(message, efc)
             pyxel.text(x=self.text_w, y=self.text_h, s=f"{ans}", col=7)
             self.draw_attacked_enemy_hp()
             self.attack_effect()
         else:
-            if (pyxel.frame_count - self.fc) % SPEED == 0:
+            if efc == 0:
                 player.mp_after_skill = player.mp - player.skill_mp
             if player.mp_after_skill < 0:
                 message = f"{player.name}'s SKILL! {player.skill_name}!!"
-                ans = self.return_message(message, (pyxel.frame_count - self.fc) % SPEED)
+                ans = self.return_message(message, efc)
                 pyxel.text(x=self.text_w, y=self.text_h, s=f"{ans}", col=7)
-                if SPEED // 2 <= (pyxel.frame_count - self.fc) % SPEED:
+                if SPEED // 2 <= efc:
                     message = f"BUT {player.name} HAS NOT ENOUGH MP..."
-                    ans = self.return_message(message, (pyxel.frame_count - self.fc) % SPEED - SPEED // 2)
+                    ans = self.return_message(message, efc - SPEED // 2)
                     pyxel.text(x=self.text_w, y=self.text_h + 8, s=f"{ans}", col=8)
             else:
-                if (pyxel.frame_count - self.fc) % SPEED == SPEED // 2 - 1:
+                if player.skill_type == "heal":
+                    if efc == 0:
+                        player.mp = player.mp_after_skill
+                        player.damage = int(player.at * player.rate * random.uniform(0.9, 1.1))
+                elif efc == SPEED // 2 - 1:
                     player.mp = player.mp_after_skill
                     player.damage = int(player.at * player.rate * random.uniform(0.9, 1.1))
                     if player.skill_type == "attack":
                         player.damage -= self.enemy.df
                         self.enemy.hp -= player.damage
-                    elif player.skill_type == "heal":
-                        for p in self.player_list:
-                            if p.is_alive:
-                                p.hp += player.damage
 
                 message = f"{player.name}'s SKILL! {player.skill_name}!!"
-                ans = self.return_message(message, (pyxel.frame_count - self.fc) % SPEED)
+                ans = self.return_message(message, efc)
                 pyxel.text(x=self.text_w, y=self.text_h, s=f"{ans}", col=7)
                 if player.skill_type == "attack":
                     self.draw_attacked_enemy_hp()
-                    if SPEED // 2 <= (pyxel.frame_count - self.fc) % SPEED < SPEED // 2 + 5:
+                    if SPEED // 2 <= efc < SPEED // 2 + 5:
                         self.effect_when_enemy_is_attacked()
                     if player.name == "Aldo":
                         self.x_blade_effect()
@@ -364,12 +371,20 @@ class App:
                     else:
                         self.attack_effect()
                 elif player.skill_type == "heal":
-                    if SPEED // 2 <= (pyxel.frame_count - self.fc) % SPEED:
+                    if efc == 0:
+                        self.alive_list = []
+                        for player in self.player_list:
+                            if player.is_alive:
+                                self.alive_list.append(player)
+                    if SPEED // 2 <= efc:
                         message = f"Everyone gets {player.damage} points of heal!!"
-                        ans = self.return_message(message, (pyxel.frame_count - self.fc) % SPEED - SPEED // 2)
+                        ans = self.return_message(message, efc - SPEED // 2)
                         pyxel.text(x=self.text_w, y=self.text_h + 8, s=f"{ans}", col=7)
-                    for p in self.player_list:
-                        if SPEED // 2 <= (pyxel.frame_count - self.fc) % SPEED and p.is_alive:
+                    for i in range(len(self.alive_list)):
+                        p = self.alive_list[i]
+                        if SPEED // 4 + i * 9 == efc:
+                            p.hp += player.damage
+                        if SPEED // 4 + i * 9 <= efc:
                             pyxel.text(x=p.place, y=self.player_h + 8, s=f"HP {p.hp}/{p.max_hp}", col=3)
                     self.heal_effect()
 
@@ -542,7 +557,7 @@ class App:
         efc = (pyxel.frame_count - self.fc) % SPEED
         self.draw_enemy_attack_self(pyxel.frame_count % 2)
         if efc == 0:
-            self.enemy.damage = int(self.enemy.at * random.uniform(0.8, 1.2))
+            self.enemy.damage = int(self.enemy.at * random.uniform(0.9, 1.2))
         message = f"{self.enemy.name}'s ATTACK!!"
         ans = self.return_message(message, (pyxel.frame_count - self.fc) % SPEED)
         pyxel.text(x=self.text_w, y=self.text_h, s=f"{ans}", col=7)
@@ -583,6 +598,9 @@ class App:
             w = 32
             h = 32
             pyxel.blt(x, y, 1, u, v, w, h, 0)
+
+    def draw_player_mp_red(self, player):
+        pyxel.text(x=player.place, y=self.player_h + 16, s=f"   {player.mp}", col=8)
 
     def hide_player_status(self, player):
         pyxel.text(x=player.place, y=self.player_h, s=player.name, col=0)
