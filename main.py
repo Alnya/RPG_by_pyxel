@@ -53,14 +53,15 @@ class App:
         self.light_ball_list = []
         self.aldo_ball_list = []
         self.fire_ball_list = []
-        for _ in range(50):
+        for _ in range(20):
             self.fire_ball_list.append(FireBall())
         self.title_ball_list = []
-        for _ in range(30):
+        for _ in range(10):
             self.title_ball_list.append(TitleBall())
 
         self.mode = TITLE
         self.fc = -1
+        self.title_fc = -1
         self.dead_count = 0
 
         self.last_attack_log = ""
@@ -85,9 +86,10 @@ class App:
 
     def update_title(self):
         if self.mode == TITLE:
-            if pyxel.btnp(pyxel.KEY_ENTER):
-                self.fc = pyxel.frame_count + 1
-            if self.fc == pyxel.frame_count:
+            if pyxel.btnp(pyxel.KEY_ENTER) and self.fc == -1:
+                self.fc = pyxel.frame_count + SPEED
+                self.title_fc = pyxel.frame_count + SPEED * 2
+            if self.title_fc == pyxel.frame_count:
                 self.mode = SELECTING
 
     def update_select(self):
@@ -175,7 +177,7 @@ class App:
         self.draw_win()
         self.draw_lose()
         if self.mode == TITLE:
-            self.title_draw()
+            self.draw_title()
 
     def draw_lose(self):
         if self.mode == LOSE:
@@ -273,7 +275,7 @@ class App:
         for ball in self.fire_ball_list:
             ball.draw()
 
-    def title_draw(self):
+    def draw_title(self):
         pyxel.cls(0)
         pyxel.text(x=WIDTH // 2 - 24, y=HEIGHT // 2 - 4, s=f"GAME START", col=7 if pyxel.frame_count % 40 < 20 else 8)
         pyxel.text(x=WIDTH // 2 - 27, y=HEIGHT * 3 // 4 - 8, s=f"PRESS  ENTER",
@@ -281,6 +283,28 @@ class App:
         for ball in self.title_ball_list:
             ball.update()
             ball.draw()
+        efc = pyxel.frame_count - self.fc + SPEED
+        if self.fc != -1:
+            pyxel.cls(0)
+            if 0 <= efc < SPEED // 2:
+                period_count = (pyxel.frame_count // 8) % 4
+                period = ""
+                for _ in range(period_count):
+                    period += "."
+                pyxel.text(x=WIDTH - 60, y=HEIGHT - 10, s=f"Now loading{period}", col=7)
+            elif SPEED // 2 <= efc < SPEED // 2 + self.enemy_height + 16:
+                pyxel.blt(x=self.enemy_width, y=efc - SPEED // 2 - 16, img=0, u=0,
+                          v=16 * ((pyxel.frame_count // 4) % 8),
+                          w=16, h=16)
+            elif SPEED // 2 + self.enemy_height + 16 <= efc < SPEED:
+                pyxel.blt(x=self.enemy_width, y=self.enemy_height, img=0, u=0, v=16 * ((pyxel.frame_count // 4) % 8),
+                          w=16, h=16)
+            elif SPEED <= efc:
+                self.draw_enemy_attack_self(pyxel.frame_count % 2)
+                for i in range(len(self.player_list)):
+                    player = self.player_list[i]
+                    self.draw_enemy_attack_fire(player, i * 2)
+                    self.draw_enemy_attack_fire(player, i * 2 + 8)
 
     def draw_dead(self):
         for player in self.player_list:
@@ -331,7 +355,7 @@ class App:
             ans = self.return_message(message, efc)
             pyxel.text(x=self.text_w, y=self.text_h, s=f"{ans}", col=7)
             self.draw_attacked_enemy_hp()
-            self.attack_effect()
+            self.attack_effect(player)
         else:
             if efc == 0:
                 player.mp_after_skill = player.mp - player.skill_mp
@@ -369,7 +393,7 @@ class App:
                     elif player.name == "Anabel":
                         self.holy_sword_of_prayer()
                     else:
-                        self.attack_effect()
+                        self.attack_effect(player)
                 elif player.skill_type == "heal":
                     if efc == 0:
                         self.alive_list = []
@@ -424,26 +448,31 @@ class App:
         pyxel.text(x=self.enemy_width + 32 + x, y=self.enemy_height + 8 + y,
                    s=f"HP {self.enemy.hp}/{self.enemy.max_hp}", col=8)
         pyxel.text(x=self.enemy_width + 32 + x, y=self.enemy_height + 16 + y,
-                   s=f"MP {self.enemy.mp}/{self.enemy.max_mp}",
-                   col=7)
+                   s=f"MP {self.enemy.mp}/{self.enemy.max_mp}", col=7)
         x = random.randint(-2, 2)
         y = random.randint(-2, 2)
         pyxel.blt(x=self.enemy_width, y=self.enemy_height, img=0, u=16, v=16, w=16, h=16)
         pyxel.blt(x=self.enemy_width + x, y=self.enemy_height + y, img=0, u=0, v=0, w=16, h=16)
 
-    def attack_effect(self):
+    def attack_effect(self, player):
         effect_sp = 3
         length = 12
-        effect_fc = ((pyxel.frame_count - self.fc) % SPEED) * effect_sp
+        effect_fc = ((pyxel.frame_count - self.fc) % SPEED - SPEED // 3) * effect_sp
         x = self.enemy_width - 8
         y = self.enemy_height - 8
         u = 0
+        if player.name == "Aldo":
+            u = 0
+        elif player.name == "Cyrus":
+            u = 48
+        elif player.name == "Riica":
+            u = 80
         v = 0
         w = 32
         h = 32
         frag = True
 
-        if effect_fc < length:
+        if 0 <= effect_fc < length:
             h = effect_fc
         elif effect_fc < 32:
             y += effect_fc - length
@@ -579,14 +608,21 @@ class App:
             if SPEED // 2 + i * 9 <= efc < SPEED // 2 + i * 9 + 5:
                 self.effect_when_player_is_attacked(player)
             elif SPEED // 2 + i * 9 + 5 <= efc:
-                pyxel.text(x=player.place, y=self.player_h + 8, s=f"HP {player.hp}/{player.max_hp}", col=8)
+                if player.is_alive:
+                    pyxel.text(x=player.place, y=self.player_h + 8, s=f"HP {player.hp}/{player.max_hp}", col=8)
+                else:
+                    pyxel.text(x=player.place, y=self.player_h + 8, s=f"HP {player.hp}/{player.max_hp}", col=13)
 
     def draw_enemy_attack_self(self, index):
         index *= 2
         effect_fc = ((pyxel.frame_count - self.fc) % SPEED) // 3
-        if effect_fc <= 18:
+        if 0 <= effect_fc <= 18:
             self.hide_enemy_image()
             pyxel.bltm(x=self.enemy_width, y=self.enemy_height, tm=0, u=index, v=effect_fc * 2, w=2, h=2, colkey=0)
+        else:
+            self.hide_enemy_image()
+            pyxel.blt(x=self.enemy_width, y=self.enemy_height, img=0, u=0, v=16 * ((pyxel.frame_count // 4) % 8), w=16,
+                      h=16)
 
     def draw_enemy_attack_fire(self, player, fc_point):
         effect_fc = ((pyxel.frame_count - self.fc) % SPEED - SPEED // 4) // 3 - fc_point
@@ -700,7 +736,6 @@ class AldoBall:
         self.y = int(self.cy + math.sin(self.pi) * self.r * self.save_y)
 
     def draw(self):
-        # pyxel.circ(self.x, self.y, 1, self.col)
         pyxel.pset(self.x, self.y, self.col)
 
 
@@ -734,30 +769,25 @@ class TitleBall:
     def __init__(self):
         self.x = random.randint(0, WIDTH)
         self.y = random.randint(0, HEIGHT)
-        self.col = random.randint(1, 15)
-        self.r = 1
+        self.col = (pyxel.frame_count // 5) % 15 + 1
 
     def update(self):
-        self.x += random.randint(1, 10)
-        self.y -= random.randint(1, 3)
+        self.x += random.randint(-1, 1)
+        self.y -= random.randint(1, 2)
         if self.x < 0:
             self.x = WIDTH
-            self.update_col()
         elif self.x > WIDTH:
             self.x = 0
-            self.update_col()
-        if self.y <= 0:
+        if self.y < 0:
             self.y = HEIGHT
-            self.update_col()
-        elif self.y > HEIGHT:
-            self.y = 0
-            self.update_col()
+            self.x = random.randint(0, WIDTH)
+        self.update_col()
 
     def update_col(self):
-        self.col = random.randint(1, 15)
+        self.col = (pyxel.frame_count // 16) % 15 + 1
 
     def draw(self):
-        pyxel.circ(self.x, self.y, self.r, self.col)
+        pyxel.pset(self.x, self.y, self.col)
 
 
 App()
