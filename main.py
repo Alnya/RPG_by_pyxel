@@ -26,16 +26,16 @@ class App:
         self.enemy_width = WIDTH // 2 - 16
         self.player_list = [
             Player(name="Aldo", hp=140, mp=80, at=120, df=100, sp=300, place=self.player_w),
-            Player(name="Cyrus", hp=120, mp=100, at=150, df=80, sp=330, place=self.player_w + WIDTH // 4),
-            Player(name="Riica", hp=130, mp=150, at=100, df=90, sp=320, place=self.player_w + WIDTH // 2),
-            Player(name="Anabel", hp=200, mp=120, at=130, df=110, sp=290, place=self.player_w + (WIDTH * 3) // 4),
+            Player(name="Cyrus", hp=120, mp=100, at=150, df=90, sp=330, place=self.player_w + WIDTH // 4),
+            Player(name="Riica", hp=130, mp=150, at=100, df=100, sp=320, place=self.player_w + WIDTH // 2),
+            Player(name="Anabel", hp=200, mp=120, at=100, df=110, sp=290, place=self.player_w + (WIDTH * 3) // 4),
         ]
-        self.enemy = Enemy(name="Guildna", hp=1000, mp=1000, at=100, df=50, sp=310)
+        self.enemy = Enemy(name="Guildna", hp=1000, mp=1000, at=10000, df=50, sp=310000)
 
         self.player_list[0].set_skill(skill_name="X BLADE", skill_type="attack", rate=2, skill_mp=40)
         self.player_list[1].set_skill(skill_name="NIRVANA SLASH", skill_type="attack", rate=1.7, skill_mp=25)
         self.player_list[2].set_skill(skill_name="POWER HEAL", skill_type="heal", rate=0.7, skill_mp=15)
-        self.player_list[3].set_skill(skill_name="HOLY SWORD OF PRAYER", skill_type="attack", rate=2, skill_mp=60)
+        self.player_list[3].set_skill(skill_name="HOLY SWORD OF PRAYER", skill_type="attack", rate=2, skill_mp=30)
 
         self.select_list = [
             True,
@@ -64,10 +64,10 @@ class App:
         self.title_fc = -1
         self.dead_count = 0
 
-        self.last_attack_log = ""
-        self.last_attack_effect = ""
         self.win_fc = -1
         self.lose_fc = -1
+
+        pyxel.play(ch=0, snd=4, loop=True)
 
         pyxel.run(self.update, self.draw)
 
@@ -91,6 +91,7 @@ class App:
                 self.title_fc = pyxel.frame_count + SPEED * 2
             if self.title_fc == pyxel.frame_count:
                 self.mode = SELECTING
+                pyxel.playm(1, loop=True)
 
     def update_select(self):
         if self.mode == SELECTING:
@@ -138,8 +139,8 @@ class App:
             if not player.is_alive:
                 count += 1
         self.dead_count = count
-        if self.dead_count == 4 and self.lose_fc == -1:
-            self.lose_fc = pyxel.frame_count + SPEED // 2
+        if self.dead_count == 4 and self.lose_fc == -1 and self.mode == SELECTING:
+            self.lose_fc = pyxel.frame_count + 1
 
     def update_select_list(self, index):
         if pyxel.btnp(pyxel.KEY_DOWN) or pyxel.btnp(pyxel.KEY_UP):
@@ -165,8 +166,6 @@ class App:
                   h=16)
         self.draw_players_and_enemy()
         self.draw_fire_ball()
-        # pyxel.blt(x=self.enemy_width, y=self.enemy_height, img=1, u=0, v=(pyxel.frame_count % 11) * 16, w=16, h=16,
-        #           colkey=0)
 
         self.draw_selected_choices()
         self.draw_select()
@@ -181,6 +180,9 @@ class App:
 
     def draw_lose(self):
         if self.mode == LOSE:
+            if pyxel.frame_count - self.lose_fc == 0:
+                pyxel.stop()
+                pyxel.play(0, 16)
             if 0 <= pyxel.frame_count - self.lose_fc < SPEED * 2:
                 message = "ANNIHILATION...\nYOU LOSE............"
                 ans = self.return_message(message, pyxel.frame_count - self.lose_fc)
@@ -195,6 +197,10 @@ class App:
         if self.mode == WIN:
             pyxel.text(x=self.enemy_width + 32, y=self.enemy_height + 8, s=f"HP {self.enemy.hp}/{self.enemy.max_hp}",
                        col=8)
+            if pyxel.frame_count - self.win_fc == 0:
+                pyxel.stop()
+            elif pyxel.frame_count - self.win_fc == SPEED // 2:
+                pyxel.play(0, 15)
             if 0 <= pyxel.frame_count - self.win_fc < SPEED // 2:
                 self.hide_enemy_image()
                 self.effect_when_enemy_is_attacked()
@@ -305,6 +311,8 @@ class App:
                     player = self.player_list[i]
                     self.draw_enemy_attack_fire(player, i * 2)
                     self.draw_enemy_attack_fire(player, i * 2 + 8)
+            if efc == SPEED - 5:
+                pyxel.stop()
 
     def draw_dead(self):
         for player in self.player_list:
@@ -340,7 +348,7 @@ class App:
         efc = (pyxel.frame_count - self.fc) % SPEED
         self.attacker_status_effect(player)
 
-        if player.is_attack or player.skill_type == "attack":
+        if player.is_attack or player.skill_type == "attack" and player.mp_after_skill >= 0:
             if SPEED // 2 <= efc:
                 message = f"{player.damage} damage to {self.enemy.name}!"
                 ans = self.return_message(message, efc - SPEED // 2)
@@ -408,11 +416,14 @@ class App:
                         p = self.alive_list[i]
                         if SPEED // 4 + i * 9 == efc:
                             p.hp += player.damage
+                            pyxel.play(1, 11)
                         if SPEED // 4 + i * 9 <= efc:
                             pyxel.text(x=p.place, y=self.player_h + 8, s=f"HP {p.hp}/{p.max_hp}", col=3)
                     self.heal_effect()
 
     def draw_attacked_enemy_hp(self):
+        if SPEED // 2 == (pyxel.frame_count - self.fc) % SPEED:
+            pyxel.play(1, 10)
         if SPEED // 2 <= (pyxel.frame_count - self.fc) % SPEED < SPEED // 2 + 5:
             self.effect_when_enemy_is_attacked()
         elif SPEED // 2 + 5 <= (pyxel.frame_count - self.fc) % SPEED:
@@ -461,7 +472,7 @@ class App:
         x = self.enemy_width - 8
         y = self.enemy_height - 8
         u = 0
-        if player.name == "Aldo":
+        if player.name == "Aldo" or player.name == "Anabel":
             u = 0
         elif player.name == "Cyrus":
             u = 48
@@ -487,6 +498,14 @@ class App:
         if frag:
             pyxel.blt(x, y, 2, u, v, w, h, 0)
 
+        if effect_fc == 0:
+            if player.name == "Aldo" or player.name == "Anabel":
+                pyxel.play(0, 7)
+            elif player.name == "Cyrus":
+                pyxel.play(0, 8)
+            elif player.name == "Riica":
+                pyxel.play(0, 9)
+
     def x_blade_effect(self):
         effect_sp = 2
         effect_fc = ((pyxel.frame_count - self.fc) % SPEED) * effect_sp
@@ -501,6 +520,9 @@ class App:
 
         x += random.randint(-1, 1)
         y += random.randint(-1, 1)
+
+        if effect_fc == 0:
+            pyxel.play(0, 12)
 
         if effect_fc < 32:
             h = effect_fc
@@ -534,6 +556,10 @@ class App:
             ball.draw()
 
     def nirvana_slash_effect(self):
+        if (pyxel.frame_count - self.fc) % SPEED == 0:
+            pyxel.play(0, 13, loop=True)
+        elif (pyxel.frame_count - self.fc) % SPEED == SPEED - 1:
+            pyxel.play(0, 50)
         theta = ((pyxel.frame_count - self.fc) % SPEED) // 2
         x1 = int(math.cos(theta) * 10) + self.enemy_width
         y1 = int(math.sin(theta) * 10) + self.enemy_height
@@ -573,6 +599,9 @@ class App:
             ball.update()
             ball.draw()
 
+        if (pyxel.frame_count - self.fc) % SPEED == 0:
+            pyxel.play(0, 14)
+
     def heal_effect(self):
         if (pyxel.frame_count - self.fc) % SPEED < SPEED:
             start = (((pyxel.frame_count - self.fc) % SPEED) * (WIDTH - 7) // 20) - SPEED * 2
@@ -605,6 +634,7 @@ class App:
             self.draw_enemy_attack_fire(player, i * 3)
             if SPEED // 2 + i * 9 == efc:
                 player.hp -= self.enemy.damage - int(player.df * random.uniform(0.4, 0.5))
+                pyxel.play(1, 10)
             if SPEED // 2 + i * 9 <= efc < SPEED // 2 + i * 9 + 5:
                 self.effect_when_player_is_attacked(player)
             elif SPEED // 2 + i * 9 + 5 <= efc:
@@ -634,6 +664,8 @@ class App:
             w = 32
             h = 32
             pyxel.blt(x, y, 1, u, v, w, h, 0)
+        if effect_fc == 0:
+            pyxel.play(0, 6)
 
     def draw_player_mp_red(self, player):
         pyxel.text(x=player.place, y=self.player_h + 16, s=f"   {player.mp}", col=8)
@@ -712,7 +744,6 @@ class LightBall:
 
     def draw(self):
         pyxel.pset(self.x, self.y, self.col)
-        # pyxel.blt(self.x, self.y, 2, self.col_u, 8, 1, 1, 0)
 
 
 class AldoBall:
