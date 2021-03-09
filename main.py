@@ -25,15 +25,15 @@ class App:
         self.enemy_height = HEIGHT * 3 // 8 - 12
         self.enemy_width = WIDTH // 2 - 16
         self.player_list = [
-            Player(name="Aldo", hp=140, mp=80, at=120, df=100, sp=300, place=self.player_w),
-            Player(name="Cyrus", hp=120, mp=100, at=150, df=90, sp=330, place=self.player_w + WIDTH // 4),
-            Player(name="Riica", hp=130, mp=150, at=100, df=100, sp=320, place=self.player_w + WIDTH // 2),
+            Player(name="Aldo", hp=160, mp=80, at=120, df=100, sp=300, place=self.player_w),
+            Player(name="Cyrus", hp=130, mp=100, at=150, df=90, sp=330, place=self.player_w + WIDTH // 4),
+            Player(name="Riica", hp=150, mp=150, at=100, df=100, sp=320, place=self.player_w + WIDTH // 2),
             Player(name="Anabel", hp=200, mp=120, at=100, df=110, sp=290, place=self.player_w + (WIDTH * 3) // 4),
         ]
-        self.enemy = Enemy(name="Guildna", hp=1000, mp=1000, at=10000, df=50, sp=310000)
+        self.enemy = Enemy(name="Guildna", hp=2000, mp="????", at=100, df=10, sp=310)
 
-        self.player_list[0].set_skill(skill_name="X BLADE", skill_type="attack", rate=2, skill_mp=40)
-        self.player_list[1].set_skill(skill_name="NIRVANA SLASH", skill_type="attack", rate=1.7, skill_mp=25)
+        self.player_list[0].set_skill(skill_name="X BLADE", skill_type="attack", rate=5, skill_mp=40)
+        self.player_list[1].set_skill(skill_name="NIRVANA SLASH", skill_type="attack", rate=1.7, skill_mp=20)
         self.player_list[2].set_skill(skill_name="POWER HEAL", skill_type="heal", rate=0.7, skill_mp=15)
         self.player_list[3].set_skill(skill_name="HOLY SWORD OF PRAYER", skill_type="attack", rate=2, skill_mp=30)
 
