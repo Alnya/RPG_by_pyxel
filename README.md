@@ -17,8 +17,8 @@ This RPG is created by pyxel.
 │  requirements.txt
 │  TitleBall.py
 │
-├─assets
-│      guildna.pyxres
+└──assets
+       guildna.pyxres
 ```
 
 ## Description
