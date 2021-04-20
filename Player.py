@@ -1,6 +1,3 @@
-import pyxel
-
-
 class Player:
     def __init__(self, name, hp, mp, at, df, sp, place):
         self.name = name

@@ -1,4 +1,5 @@
 import pyxel
+import random
 
 
 class LightBall:

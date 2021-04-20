@@ -1,6 +1,3 @@
-import pyxel
-
-
 class Enemy:
     def __init__(self, name, hp, mp, at, df, sp):
         self.name = name

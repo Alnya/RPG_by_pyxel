@@ -1,4 +1,8 @@
 import pyxel
+import random
+
+WIDTH = 200
+HEIGHT = 100
 
 
 class TitleBall:
