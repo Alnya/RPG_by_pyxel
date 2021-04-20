@@ -1,4 +1,9 @@
 import pyxel
+import random
+import math
+
+WIDTH = 200
+HEIGHT = 100
 
 
 class AldoBall:
