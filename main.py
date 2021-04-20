@@ -1,6 +1,12 @@
 import pyxel
 import random
 import math
+from Player import Player
+from Enemy import Enemy
+from LightBall import LightBall
+from AldoBall import AldoBall
+from FireBall import FireBall
+from TitleBall import TitleBall
 
 WIDTH = 200
 HEIGHT = 100
@@ -684,141 +690,5 @@ class App:
         pyxel.blt(x=self.enemy_width, y=self.enemy_height, img=0, u=16, v=0, w=16, h=16)
 
 
-class Player:
-    def __init__(self, name, hp, mp, at, df, sp, place):
-        self.name = name
-        self.hp = hp
-        self.mp = mp
-        self.at = at
-        self.df = df
-        self.sp = sp
-        self.place = place
-
-        self.max_hp = hp
-        self.max_mp = mp
-
-        self.is_attack = True
-        self.damage = 0
-        self.skill_type = "attack"
-        self.rate = 1
-        self.skill_name = ""
-        self.skill_mp = 0
-        self.mp_after_skill = self.max_mp
-        self.dead_fc = -1
-
-        self.is_alive = True
-
-    def set_skill(self, skill_name, skill_type, rate, skill_mp):
-        self.skill_name = skill_name
-        self.skill_type = skill_type
-        self.rate = rate
-        self.skill_mp = skill_mp
-
-
-class Enemy:
-    def __init__(self, name, hp, mp, at, df, sp):
-        self.name = name
-        self.hp = hp
-        self.mp = mp
-        self.at = at
-        self.df = df
-        self.sp = sp
-
-        self.max_hp = hp
-        self.max_mp = mp
-
-        self.damage = 0
-
-        self.is_alive = True
-
-
-class LightBall:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.col = 7
-
-    def update(self):
-        self.x += random.randint(-1, 1)
-        self.y += random.randint(1, 5)
-
-    def draw(self):
-        pyxel.pset(self.x, self.y, self.col)
-
-
-class AldoBall:
-    def __init__(self):
-        col_list = [8, 12, 7, 7]
-        self.col = col_list[random.randint(0, 3)]
-        self.cx = WIDTH // 2 - 16 + 8
-        self.cy = HEIGHT * 3 // 8 - 12 + 8
-        self.pi = random.uniform(0, 2 * math.pi)
-        self.r = 2
-        self.x = 0
-        self.y = 0
-        self.save_x = 1
-        self.save_y = 1
-
-    def update(self):
-        self.pi += math.pi / 16
-        self.save_x += random.uniform(0, 3)
-        self.save_y += random.uniform(0, 3)
-        self.x = int(self.cx + math.cos(self.pi) * self.r * self.save_x)
-        self.y = int(self.cy + math.sin(self.pi) * self.r * self.save_y)
-
-    def draw(self):
-        pyxel.pset(self.x, self.y, self.col)
-
-
-class FireBall:
-    def __init__(self):
-        self.x = random.randint(0, WIDTH)
-        self.y = random.randint(0, HEIGHT // 2)
-        self.col_v = random.randint(8, 9)
-
-    def update(self):
-        self.x += random.randint(-1, 1)
-        self.y -= 1 if random.randint(0, 5) < 5 else 0
-        if self.x < 0:
-            self.x = WIDTH
-            self.col_v = random.randint(8, 9)
-        elif self.x > WIDTH:
-            self.x = 0
-            self.col_v = random.randint(8, 9)
-        if self.y < 0:
-            self.y = HEIGHT // 2
-            self.col_v = random.randint(8, 9)
-        elif self.y > HEIGHT // 2:
-            self.y = 0
-            self.col_v = random.randint(8, 9)
-
-    def draw(self):
-        pyxel.blt(self.x, self.y, 2, 32, self.col_v, 1, 1, 0)
-
-
-class TitleBall:
-    def __init__(self):
-        self.x = random.randint(0, WIDTH)
-        self.y = random.randint(0, HEIGHT)
-        self.col = (pyxel.frame_count // 5) % 15 + 1
-
-    def update(self):
-        self.x += random.randint(-1, 1)
-        self.y -= random.randint(1, 2)
-        if self.x < 0:
-            self.x = WIDTH
-        elif self.x > WIDTH:
-            self.x = 0
-        if self.y < 0:
-            self.y = HEIGHT
-            self.x = random.randint(0, WIDTH)
-        self.update_col()
-
-    def update_col(self):
-        self.col = (pyxel.frame_count // 16) % 15 + 1
-
-    def draw(self):
-        pyxel.pset(self.x, self.y, self.col)
-
-
-App()
+if __name__ == '__main__':
+    App()
